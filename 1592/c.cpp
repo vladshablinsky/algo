@@ -8,41 +8,52 @@ using namespace std;
 const int MAXN = 100005;
 int a[MAXN];
 vector<int> g[MAXN];
-
-int same_subtree_cnt;
-int global_xor;
-bool any_same_as_subtree;
+int target_xor = 0;
 
 void init(int n) {
-  same_subtree_cnt = 0;
-  any_same_as_subtree = false;
-
+  target_xor = 0;
   for (int i = 0; i < n; ++i) {
     g[i].clear();
   }
 }
 
-int dfs(int v, int p) {
-  int v_subtree_xor = 0;
+// return xor of subtree and flag if one of the subtrees had xor a
+// we're seeking for a vertex where two or more children with a flag returned
+pair<int, bool> dfs(int v, int p, bool& ans) {
+  int cnt_target_xor = 0;
+  int whole_subtree_xor = a[v];
+
+  int cnt_child = 0;
   for (auto to: g[v]) {
-    if (to != p) {
-      int to_subtree_xor = dfs(to, v);
-      v_subtree_xor ^= to_subtree_xor;
+    if (to == p) {
+      continue;
     }
-  }
-  v_subtree_xor ^= a[v];
+    ++cnt_child;
 
-  if (v_subtree_xor == global_xor && (global_xor ^ v_subtree_xor == global_xor)) {
-    // cout << "at " << v << " ok " << endl;
-    same_subtree_cnt++;
+    auto [to_xor, to_found_target] = dfs(to, v, ans);
+    if (ans) {
+      return {};
+    }
+
+    cnt_target_xor += to_found_target;
+    whole_subtree_xor ^= to_xor;
   }
 
-  // Primarily for global xor = 0
-  // root does not count!
-  if (v && v_subtree_xor == global_xor ^ v_subtree_xor) {
-    any_same_as_subtree = true;
+  int uptree_xor = whole_subtree_xor ^ target_xor;
+  if (uptree_xor == target_xor && cnt_target_xor) {
+    ans = true;
+    return {};
   }
-  return v_subtree_xor;
+
+  if (cnt_target_xor > 1) {
+    ans = true;
+    return {};
+  }
+
+  // cout << "dfs: " << v << endl;
+  cnt_target_xor |= (whole_subtree_xor == target_xor);
+  // cout << "returning: " << whole_subtree_xor << ", " << cnt_target_xor << endl;
+  return {whole_subtree_xor, cnt_target_xor};
 }
 
 bool solve() {
@@ -50,10 +61,9 @@ bool solve() {
   scanf("%d%d", &n, &k);
   init(n);
 
-  int all_xor = 0;
   for (int i = 0; i < n; ++i) {
     scanf("%d", &a[i]);
-    all_xor ^= a[i];
+    target_xor ^= a[i];
   }
 
   for (int i = 0; i < n - 1; ++i) {
@@ -65,15 +75,14 @@ bool solve() {
     g[to].push_back(from);
   }
 
+  // cout << "TARGET: " << target_xor << endl;
 
-  // two cases here. Either xor zero, or X
-  global_xor = all_xor;
-  dfs(0, -1);
-
-  if (all_xor) {
-    return k > 2 && same_subtree_cnt >= 2;
+  if (target_xor) {
+    bool ans = false;
+    dfs(0, -1, ans);
+    return k > 2 && ans;
   } else {
-    return any_same_as_subtree;
+    return true;
   }
 }
 
