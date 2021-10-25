@@ -18,7 +18,7 @@ void solve () {
   }
 
   // empty subsequence -- ok
-  printf("%lld\n", cnt_ones * (1 << cnt_zeros));
+  printf("%lld\n", (1ll << cnt_zeros) * cnt_ones);
 }
 
 int main() {
